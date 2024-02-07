@@ -17,7 +17,7 @@ import { toast } from "@/components/ui/use-toast";
 import { createBrowserSupabaseClient } from "@/lib/client-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { MouseEvent, useState, type BaseSyntheticEvent } from "react";
+import { useState, type BaseSyntheticEvent, type MouseEvent } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -55,7 +55,6 @@ const speciesSchema = z.object({
     .transform((val) => (!val || val.trim() === "" ? null : val.trim())),
 });
 
-//TODO: ask what this line does
 type FormData = z.infer<typeof speciesSchema>;
 
 export default function SpeciesDetailsDialog({ species, userId }: { species: Species; userId: string }) {
@@ -84,7 +83,7 @@ export default function SpeciesDetailsDialog({ species, userId }: { species: Spe
     mode: "onChange",
   });
 
-  //TODO: update species in database
+  // update species in database
   const onSubmit = async (input: FormData) => {
     const supabase = createBrowserSupabaseClient();
 
@@ -335,7 +334,7 @@ export default function SpeciesDetailsDialog({ species, userId }: { species: Spe
                         Cancel
                       </Button>
                       <Button
-                        onClick={handleDelete}
+                        onClick={() => handleDelete}
                         type="button"
                         className="ml-1 mr-1 flex-auto"
                         variant="destructive"

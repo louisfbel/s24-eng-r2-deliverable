@@ -19,12 +19,12 @@
     "baseUrl": ".",
     "plugins": [
       {
-        "name": "next"
-      }
+        "name": "next",
+      },
     ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": ["./*"],
+    },
   },
   "include": [
     "next-env.d.ts",
@@ -34,7 +34,7 @@
     "**/*.cjs",
     "**/*.mjs",
     ".eslintrc.cjs",
-    "next.config.js"
+    "next.config.js",
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
 }
