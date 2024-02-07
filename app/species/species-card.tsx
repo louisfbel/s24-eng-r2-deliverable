@@ -15,23 +15,18 @@ import Image from "next/image";
 import SpeciesDetailsDialog from "./species-details-dialog";
 type Species = Database["public"]["Tables"]["species"]["Row"];
 
-interface SpeciesCardProps {
-  species: Species;
-  userId: string;
-}
-
-export default function SpeciesCard(props: SpeciesCardProps) {
+export default function SpeciesCard({ species, userId }: { species: Species; userId: string }) {
   return (
     <div className="m-4 w-72 min-w-72 flex-none rounded border-2 p-3 shadow">
-      {props.species.image && (
+      {species.image && (
         <div className="relative h-40 w-full">
-          <Image src={props.species.image} alt={props.species.scientific_name} fill style={{ objectFit: "cover" }} />
+          <Image src={species.image} alt={species.scientific_name} fill style={{ objectFit: "cover" }} />
         </div>
       )}
-      <h3 className="mt-3 text-2xl font-semibold">{props.species.scientific_name}</h3>
-      <h4 className="text-lg font-light italic">{props.species.common_name}</h4>
-      <p>{props.species.description ? props.species.description.slice(0, 150).trim() + "..." : ""}</p>
-      <SpeciesDetailsDialog species={props.species} userId={props.userId} />
+      <h3 className="mt-3 text-2xl font-semibold">{species.scientific_name}</h3>
+      <h4 className="text-lg font-light italic">{species.common_name}</h4>
+      <p>{species.description ? species.description.slice(0, 150).trim() + "..." : ""}</p>
+      <SpeciesDetailsDialog species={species} userId={userId} />
     </div>
   );
 }

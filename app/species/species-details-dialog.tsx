@@ -55,16 +55,11 @@ const speciesSchema = z.object({
     .transform((val) => (!val || val.trim() === "" ? null : val.trim())),
 });
 
+//TODO: ask what this line does
 type FormData = z.infer<typeof speciesSchema>;
 
-interface SpeciesDetailsDialogProps {
-  species: Species;
-  userId: string;
-}
-
-export default function SpeciesDetailsDialog(props: SpeciesDetailsDialogProps) {
+export default function SpeciesDetailsDialog({ species, userId }: { species: Species; userId: string }) {
   const router = useRouter();
-  const species = props.species;
 
   // Control open/closed state of the dialog
   const [open, setOpen] = useState<boolean>(false);
@@ -90,8 +85,35 @@ export default function SpeciesDetailsDialog(props: SpeciesDetailsDialogProps) {
   });
 
   //TODO: update species in database
-  const onSubmit = (input: FormData) => {
-    console.log(input);
+  const onSubmit = async (input: FormData) => {
+    const supabase = createBrowserSupabaseClient();
+
+    // update database
+    const { error } = await supabase.from("species").update(input).eq("id", species.id);
+
+    // exit early if there is an error
+    if (error) {
+      return toast({
+        title: "Something went wrong.",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+
+    // stop editing
+    setIsEditing(false);
+
+    // reset form to updated data
+    form.reset(input);
+
+    // Refresh the server component to display the new species from Supabase
+    router.refresh();
+
+    // notify the user
+    return toast({
+      title: "Changes saved!",
+      description: "Saved your changes to  " + input.scientific_name + ".",
+    });
   };
 
   // event handler for edit button
@@ -145,7 +167,7 @@ export default function SpeciesDetailsDialog(props: SpeciesDetailsDialogProps) {
     // close the form
     setOpen(false);
 
-    // Refreshing that server component will display the new species from Supabase
+    // Refresh the server component to display the list properly from Supabase
     router.refresh();
 
     return toast({
@@ -178,127 +200,131 @@ export default function SpeciesDetailsDialog(props: SpeciesDetailsDialogProps) {
         {species.total_population && <p>Total Population: {species.total_population}</p>}
         {species.kingdom && <p>Kingdom: {species.kingdom}</p>}
         {species.description && <p>{species.description}</p>}
-        <Form {...form}>
-          <form onSubmit={(e: BaseSyntheticEvent) => void form.handleSubmit(onSubmit)(e)}>
-            <div className="grid w-full items-center gap-4">
-              <FormField
-                control={form.control}
-                name="scientific_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Scientific Name</FormLabel>
-                    <FormControl>
-                      <Input readOnly={!isEditing} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+        {userId === species.author && (
+          <Form {...form}>
+            <form onSubmit={(e: BaseSyntheticEvent) => void form.handleSubmit(onSubmit)(e)}>
+              <div className="grid w-full items-center gap-4">
+                {isEditing && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="scientific_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Scientific Name</FormLabel>
+                          <FormControl>
+                            <Input readOnly={!isEditing} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="common_name"
+                      render={({ field }) => {
+                        // We must extract value from field and convert a potential defaultValue of `null` to "" because inputs can't handle null values: https://github.com/orgs/react-hook-form/discussions/4091
+                        const { value, ...rest } = field;
+                        return (
+                          <FormItem>
+                            <FormLabel>Common Name</FormLabel>
+                            <FormControl>
+                              <Input readOnly={!isEditing} value={value ?? ""} {...rest} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="kingdom"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Kingdom</FormLabel>
+                          <Select
+                            disabled={!isEditing}
+                            onValueChange={(value) => field.onChange(kingdoms.parse(value))}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectGroup>
+                                {kingdoms.options.map((kingdom, index) => (
+                                  <SelectItem key={index} value={kingdom}>
+                                    {kingdom}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="total_population"
+                      render={({ field }) => {
+                        const { value, ...rest } = field;
+                        return (
+                          <FormItem>
+                            <FormLabel>Total population</FormLabel>
+                            <FormControl>
+                              {/* Using shadcn/ui form with number: https://github.com/shadcn-ui/ui/issues/421 */}
+                              <Input
+                                readOnly={!isEditing}
+                                type="number"
+                                value={value ?? ""}
+                                {...rest}
+                                onChange={(event) => field.onChange(+event.target.value)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="image"
+                      render={({ field }) => {
+                        // We must extract value from field and convert a potential defaultValue of `null` to "" because inputs can't handle null values: https://github.com/orgs/react-hook-form/discussions/4091
+                        const { value, ...rest } = field;
+                        return (
+                          <FormItem>
+                            <FormLabel>Image URL</FormLabel>
+                            <FormControl>
+                              <Input readOnly={!isEditing} value={value ?? ""} {...rest} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => {
+                        // We must extract value from field and convert a potential defaultValue of `null` to "" because textareas can't handle null values: https://github.com/orgs/react-hook-form/discussions/4091
+                        const { value, ...rest } = field;
+                        return (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Textarea readOnly={!isEditing} value={value ?? ""} {...rest} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                  </>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="common_name"
-                render={({ field }) => {
-                  // We must extract value from field and convert a potential defaultValue of `null` to "" because inputs can't handle null values: https://github.com/orgs/react-hook-form/discussions/4091
-                  const { value, ...rest } = field;
-                  return (
-                    <FormItem>
-                      <FormLabel>Common Name</FormLabel>
-                      <FormControl>
-                        <Input readOnly={!isEditing} value={value ?? ""} {...rest} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-              <FormField
-                control={form.control}
-                name="kingdom"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kingdom</FormLabel>
-                    <Select
-                      disabled={!isEditing}
-                      onValueChange={(value) => field.onChange(kingdoms.parse(value))}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectGroup>
-                          {kingdoms.options.map((kingdom, index) => (
-                            <SelectItem key={index} value={kingdom}>
-                              {kingdom}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="total_population"
-                render={({ field }) => {
-                  const { value, ...rest } = field;
-                  return (
-                    <FormItem>
-                      <FormLabel>Total population</FormLabel>
-                      <FormControl>
-                        {/* Using shadcn/ui form with number: https://github.com/shadcn-ui/ui/issues/421 */}
-                        <Input
-                          readOnly={!isEditing}
-                          type="number"
-                          value={value ?? ""}
-                          {...rest}
-                          onChange={(event) => field.onChange(+event.target.value)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-              <FormField
-                control={form.control}
-                name="image"
-                render={({ field }) => {
-                  // We must extract value from field and convert a potential defaultValue of `null` to "" because inputs can't handle null values: https://github.com/orgs/react-hook-form/discussions/4091
-                  const { value, ...rest } = field;
-                  return (
-                    <FormItem>
-                      <FormLabel>Image URL</FormLabel>
-                      <FormControl>
-                        <Input readOnly={!isEditing} value={value ?? ""} {...rest} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => {
-                  // We must extract value from field and convert a potential defaultValue of `null` to "" because textareas can't handle null values: https://github.com/orgs/react-hook-form/discussions/4091
-                  const { value, ...rest } = field;
-                  return (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea readOnly={!isEditing} value={value ?? ""} {...rest} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-              {props.userId == species.author && (
                 <div className="flex">
                   {isEditing ? (
                     <>
@@ -325,10 +351,10 @@ export default function SpeciesDetailsDialog(props: SpeciesDetailsDialogProps) {
                     </>
                   )}
                 </div>
-              )}
-            </div>
-          </form>
-        </Form>
+              </div>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
   );
